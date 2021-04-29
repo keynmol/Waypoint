@@ -47,6 +47,15 @@ class DynamicRouteSpec extends UnitSpec {
     pattern = (root / "workspace" / segment[String] / endOfSegments) ? param[String]("query")
   )
 
+  val fragmentRoute: Route[NotePage, String] = Route.fragmentOnly[NotePage](
+    encode = note => s"${note.libraryId}/${note.noteId}/${note.scrollPosition}",
+    decode = str => {
+      val sp = str.split('/')
+      NotePage(sp(0).toInt, sp(1).toInt, sp(2).toInt)
+    },
+    pattern = fragment[String]
+  ) 
+
   // partial function match routes
 
   val bigNumRoute: Route[DocsPage, Int] = Route.applyPF(
@@ -177,6 +186,11 @@ class DynamicRouteSpec extends UnitSpec {
     expectPageRelative(searchRoute, origin, "/search?query=", None) // @TODO[API] This should probably catch an empty string
     expectPageRelative(searchRoute, origin, "/search?query", None) // @TODO[API] Might want to create a matcher for value-less keys
     expectPageRelative(searchRoute, origin, "/othersearch?query=sugar", None)
+  }
+
+  it ("fragment routes") {
+    expectPageRelative(fragmentRoute, origin, "/#1/2/3", Some(NotePage(1, 2, 3)))
+    expectPageRelativeFailure(fragmentRoute, origin, "/#1/2")
   }
 
   it ("combined routes - parse urls") {

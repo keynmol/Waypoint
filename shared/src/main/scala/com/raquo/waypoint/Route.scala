@@ -4,6 +4,8 @@ import urldsl.errors.DummyError
 import urldsl.language.{PathSegment, PathSegmentWithQueryParams}
 
 import scala.reflect.ClassTag
+import urldsl.language.Fragment
+import scala.util.Try
 
 /** Encoding and decoding are partial functions. Their partial-ness should be symmetrical,
   * otherwise you'll end up with a route that can parse a URL into a Page but can't encode
@@ -182,6 +184,24 @@ object Route {
       decodePF = { case _ => staticPage },
       createRelativeUrl = args => "/" + pattern.createPath(args),
       matchRelativeUrl = relativeUrl => pattern.matchRawUrl(relativeUrl).toOption
+    )
+  }
+
+  def fragmentOnly[Page: ClassTag](
+    encode: Page => String,
+    decode: String => Page,
+    pattern: Fragment[String, DummyError]
+  ): Route[Page, String] = {
+    new Route(
+      matchEncodePF = {
+        case p: Page => encode(p)
+      },
+      decodePF = {
+        case str => decode(str)
+      },
+      createRelativeUrl = str => "/#" + str,
+      matchRelativeUrl = relativeUrl => 
+        pattern.matchRawUrl(relativeUrl).toOption
     )
   }
 
